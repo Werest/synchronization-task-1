@@ -8,9 +8,10 @@ public class Main {
 
     public static final char charFind = 'R';
 
-    public static void main(String[] args) {
-        for (int i = 0; i < THREADS; i++) {
-            new Thread(() -> {
+    public static void main(String[] args) throws InterruptedException {
+
+        Runnable runnable = () -> {
+            for (int i = 0; i < THREADS; i++) {
                 String textRoute = generateRoute(LETTERS, LENGTH_ROUTE);
                 int countLetter = (int) textRoute.chars().filter(c -> c == charFind).count();
 
@@ -20,20 +21,48 @@ public class Main {
                     } else {
                         sizeToFreq.put(countLetter, 1);
                     }
+                    sizeToFreq.notify();
                 }
-            }).start();
-        }
+            }
+        };
+        Thread thread = new Thread(runnable);
+        thread.start();
+
+        Thread thread1 = new Thread(
+                () -> {
+                    while (!Thread.interrupted()) {
+                        synchronized (sizeToFreq) {
+                            try {
+                                sizeToFreq.wait();
+                            } catch (InterruptedException e) {
+                                return;
+                            }
+                            System.out.printf("Текущий лидер среди частот: %s (встретилось %s раз) \n",
+                                    sizeToFreq.entrySet().stream().max(Map.Entry.comparingByValue()).orElseThrow().getKey(),
+                                    sizeToFreq.entrySet().stream().max(Map.Entry.comparingByValue()).orElseThrow().getValue());
+                        }
+                    }
+                }
+        );
+
+        thread1.start();
+
+        thread.join();
+        thread1.interrupt();
+
+        System.out.println(System.lineSeparator());
 
         Map.Entry<Integer, Integer> max = sizeToFreq.entrySet()
-                .stream().max(Map.Entry.comparingByKey()).get();
+                .stream().max(Map.Entry.comparingByValue()).orElseThrow();
 
-        System.out.println("Самое частое количество повторений " + max.getKey()
-                + " (встретилось " + max.getValue() + " раз)");
+        System.out.printf("Самое частое количество повторений %s (встретилось %s раз) \n",
+                max.getKey(),
+                max.getValue());
 
         System.out.println("Другие размеры:");
 
-        sizeToFreq.entrySet().stream().sorted(Collections.reverseOrder(Map.Entry.comparingByKey()))
-                .forEach(x -> System.out.println("- " + x.getKey() + " (" + x.getValue() + " раз)"));
+        sizeToFreq.entrySet().stream().sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+                .forEach(x -> System.out.printf("- %s (%s раз) \n", x.getKey(), x.getValue()));
     }
 
     public static String generateRoute(String letters, int length) {

@@ -25,14 +25,14 @@ public class Main {
         }
 
         Map.Entry<Integer, Integer> max = sizeToFreq.entrySet()
-                .stream().max(Map.Entry.comparingByKey()).get();
+                .stream().max(Map.Entry.comparingByValue()).orElseThrow();
 
         System.out.println("Самое частое количество повторений " + max.getKey()
                 + " (встретилось " + max.getValue() + " раз)");
 
         System.out.println("Другие размеры:");
 
-        sizeToFreq.entrySet().stream().sorted(Collections.reverseOrder(Map.Entry.comparingByKey()))
+        sizeToFreq.entrySet().stream().sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
                 .forEach(x -> System.out.println("- " + x.getKey() + " (" + x.getValue() + " раз)"));
     }
 
